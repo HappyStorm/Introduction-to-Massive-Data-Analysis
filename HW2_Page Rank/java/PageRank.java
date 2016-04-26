@@ -10,10 +10,13 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -33,12 +36,13 @@ class cmp_pr implements Comparator<Double>{
 public class PageRank {
 
 	private static NumberFormat nf = new DecimalFormat("00");
-	private int NumberNode;
+	private int NumberNode, NumberDeadEnd;
 	private static String PREFIX = "part-r-00000";
 	
 	public static void main(String[] args) throws Exception {
 		PageRank pagerank = new PageRank();
 		pagerank.NumberNode = pagerank.getNumNode(args[0]);
+		pagerank.NumberDeadEnd = pagerank.getNumDeadEnd(args[0]);
 		
 	    // phase_1: input formatted
 	    pagerank.runInputFormatting(args[0], "/hw2/out/iter00");
@@ -46,12 +50,14 @@ public class PageRank {
 	    // phase_2: calculate new page rank
 	    int iter = 0;
 	    for (; iter < 20; ++iter)	    	
-	    	 pagerank.runPageRankCalculation("/hw2/out/iter"+nf.format(iter), "/hw2/out/iter"+nf.format(iter + 1), new Integer(pagerank.NumberNode));
+	    	 pagerank.runPageRankCalculation("/hw2/out/iter"+nf.format(iter), "/hw2/out/iter"+nf.format(iter + 1),
+	    			 						 new Integer(pagerank.NumberNode), new Integer(pagerank.NumberDeadEnd));
 	    // calculate page rank until converge
 	    for (iter=19; ; ++iter){
 	    	if (isConverge("/hw2/out/iter"+nf.format(iter) + "/" + PREFIX, "/hw2/out/iter"+nf.format(iter + 1) + "/" + PREFIX))
 	    		break;
-	    	pagerank.runPageRankCalculation("/hw2/out/iter"+nf.format(iter+1), "/hw2/out/iter"+nf.format(iter + 2), new Integer(pagerank.NumberNode));
+	    	pagerank.runPageRankCalculation("/hw2/out/iter"+nf.format(iter+1), "/hw2/out/iter"+nf.format(iter + 2),
+	    									new Integer(pagerank.NumberNode), new Integer(pagerank.NumberDeadEnd));
 	    }
 
 	    // phase_3: re-order the results by page rank in descending order
@@ -74,11 +80,37 @@ public class PageRank {
             		numNode = Integer.parseInt(token[2]);
             		break;
             	}
+            	else continue;
             }
             br.close();
         }catch(Exception e){
         }
 		return numNode;
+	}
+	
+	private int getNumDeadEnd(String inputPath) throws IOException{
+		int numNode = 0;
+		Set<Integer> pageSet = new HashSet<Integer>();
+		try{
+            Path pt = new Path(inputPath);
+            FileSystem fs = FileSystem.get(new Configuration());
+            BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(pt)));
+            while (br.ready()) {
+            	String line = br.readLine();
+            	if (Character.isDigit(line.charAt(0))){
+            		String[] token = line.split("\t");
+            		pageSet.add(new Integer(Integer.parseInt(token[0])));
+            	}
+            	else if (line.startsWith("# Nodes: ")){
+            		String[] token = line.split(" ");
+            		numNode = Integer.parseInt(token[2]);
+            	}
+            	else continue;
+            }
+            br.close();
+        }catch(Exception e){
+        }
+		return numNode - pageSet.size();
 	}
 	
 	private static boolean isConverge(String prevIter, String nextIter){
@@ -92,7 +124,7 @@ public class PageRank {
             	String linePrev = brPrev.readLine(), lineNext = brNext.readLine();
             	String[] tokenPrev = linePrev.split("\t"), tokenNext = lineNext.split("\t");
             	double valPrev = Double.parseDouble(tokenPrev[1]), valNext = Double.parseDouble(tokenNext[1]);
-            	if (Math.abs(valPrev - valNext) > 1e-7){
+            	if (Math.abs(valPrev - valNext) > 1e-9){
             		brPrev.close();
             		brNext.close();
             		return false;
@@ -136,7 +168,7 @@ public class PageRank {
             WebPage iter;
             for(int i=0; i<ansList.size(); ++i){
             	iter = ansList.get(i);
-            	wr.write(String.format("%5d", iter.id) + "\t" + String.format("%.9f", iter.pr));
+            	wr.write(String.format("%5d", iter.id) + "\t" + String.format("%.13f", iter.pr));
             	wr.newLine();
             }
             wr.close();
@@ -163,9 +195,11 @@ public class PageRank {
 		job.waitForCompletion(true);
 	}
   
-	private void runPageRankCalculation(String inputPath, String outputPath, Integer numNode) throws IOException, ClassNotFoundException, InterruptedException {
+	private void runPageRankCalculation(String inputPath, String outputPath, Integer numNode, Integer numDeadEnd) throws IOException, ClassNotFoundException, InterruptedException {
 		Configuration conf = new Configuration();
 		conf.set("NumNode", numNode.toString());
+		conf.set("NumDeadEnd", numDeadEnd.toString());
+		
 		@SuppressWarnings("deprecation")
 		Job job = new Job(conf, "Calculate PageRank");
 		job.setJarByClass(PageRank.class);
@@ -190,7 +224,7 @@ public class PageRank {
 		Job job = new Job(conf, "Re-Order PageRank");
 		job.setJarByClass(PageRank.class);
  
-        job.setOutputKeyClass(FloatWritable.class);
+        job.setOutputKeyClass(DoubleWritable.class);
         job.setOutputValueClass(Text.class);
  
         FileInputFormat.setInputPaths(job, new Path(inputPath));

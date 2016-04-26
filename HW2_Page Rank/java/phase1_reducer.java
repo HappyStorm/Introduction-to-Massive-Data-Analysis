@@ -6,7 +6,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 public class phase1_reducer extends Reducer<Text, Text, Text, Text> {
-
+	
 	public void reduce(Text _key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 		String pr_links = "1.0\t";
 		boolean first = true;
