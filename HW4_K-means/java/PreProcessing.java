@@ -8,7 +8,7 @@ import org.apache.hadoop.conf.Configuration;
 public class PreProcessing {
 	protected static int MAX_CLUSTERS;
 	
-	// "/hw4/out/iter00/" + "data.txt"("c1.txt", "c2.txt")
+	// "/hw4/eu(ma)/data/" + "data.txt"("c1.txt", "c2.txt")
 	public PreProcessing(String inPath_data, String inPath_c1, String inPath_c2,
 						 String outPath_data, String outPath_c1, String outPath_c2, int num_cluster){
 		try{

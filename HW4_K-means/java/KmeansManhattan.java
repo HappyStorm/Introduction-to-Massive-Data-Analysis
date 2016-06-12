@@ -39,10 +39,11 @@ public class KmeansManhattan {
 		this.runKmeansManhattanC2(inPath_data, inPath_cluster_c2, outPath_data, outPath_cluster_c2, outPath_costFunc);
 	}
 	
-	// inPath_data:		 "/hw4/data/" + "data_c1_xx.txt"
-	// inPath_cluster:	 "/hw4/c1/"
-	// inPath_cluster:	 "/hw4/c2/"
-	// outPath_costFunc: "/hw4/eu/"
+	// inPath_data:		 "/hw4/ma/data/"
+	// inPath_cluster:	 "/hw4/ma/c1/"
+	// outPath_data:	 "/hw4/ma/data/"
+	// outPath_cluster:	 "/hw4/ma/c1/"
+	// outPath_costFunc: "/hw4/ma/ans/"
 	public void runKmeansManhattanC1(String inPath_data, String inPath_cluster, 
 			 					   String outPath_data, String outPath_cluster, String outPath_costFunc) throws Exception{
 		Configuration conf = new Configuration();
@@ -70,6 +71,11 @@ public class KmeansManhattan {
 		job.waitForCompletion(true);
 	}
 	
+	// inPath_data:		 "/hw4/ma/data/"
+	// inPath_cluster:	 "/hw4/ma/c2/"
+	// outPath_data:	 "/hw4/ma/data/"
+	// outPath_cluster:	 "/hw4/ma/c2/"
+	// outPath_costFunc: "/hw4/ma/ans/"
 	public void runKmeansManhattanC2(String inPath_data, String inPath_cluster, 
 			   String outPath_data, String outPath_cluster, String outPath_costFunc) throws Exception{
 		Configuration conf = new Configuration();
@@ -98,9 +104,7 @@ public class KmeansManhattan {
 	
 	public static class KmeansManhattanMapperC1 extends Mapper<Object, Text, IntWritable, Text> {
 		private Point[] cluster;
-	    
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
+
 		@Override
 	    protected void setup(Context context) throws IOException, InterruptedException{
 	    	cluster = new Point[MAX_CLUSTERS];
@@ -153,22 +157,20 @@ public class KmeansManhattan {
 	}
 	
 	public static class KmeansManhattanReducerC1 extends Reducer<IntWritable, Text, NullWritable, Text> {
-		private Point[] cluster;
+		private Point[] oldCluster;
 		private Point[] newCluster;
 		private double[] sum;
 		private int[] setSize;
 		
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException{
-			cluster = new Point[MAX_CLUSTERS];
+			oldCluster = new Point[MAX_CLUSTERS];
 			newCluster = new Point[MAX_CLUSTERS];
 			setSize = new int[MAX_CLUSTERS];
 			sum = new double[MAX_CLUSTERS];
 	      
 			for(int i=0; i<MAX_CLUSTERS; ++i) {
-				cluster[i] = new Point(MAX_DIMENSIONS);
+				oldCluster[i] = new Point(MAX_DIMENSIONS);
 				newCluster[i] = new Point(MAX_DIMENSIONS);
 				setSize[i] = 0;
 				sum[i] = 0.0f;
@@ -187,7 +189,7 @@ public class KmeansManhattan {
 	    		String[] seperate = read.split("\t");
 	    		String[] tokens = seperate[1].split(" ");
 	    		int clusterID = Integer.parseInt(seperate[0]);
-	    		cluster[clusterID].setPoint(tokens);
+	    		oldCluster[clusterID].setPoint(tokens);
 	    	}
 	    	br.close();
 		}
@@ -245,9 +247,7 @@ public class KmeansManhattan {
 
 	public static class KmeansManhattanMapperC2 extends Mapper<Object, Text, IntWritable, Text> {
 		private Point[] cluster;
-	    
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
+
 		@Override
 	    protected void setup(Context context) throws IOException, InterruptedException{
 	    	cluster = new Point[MAX_CLUSTERS];
@@ -300,22 +300,20 @@ public class KmeansManhattan {
 	}
 	
 	public static class KmeansManhattanReducerC2 extends Reducer<IntWritable, Text, NullWritable, Text> {
-		private Point[] cluster;
+		private Point[] oldCluster;
 		private Point[] newCluster;
 		private double[] sum;
 		private int[] setSize;
 		
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException{
-			cluster = new Point[MAX_CLUSTERS];
+			oldCluster = new Point[MAX_CLUSTERS];
 			newCluster = new Point[MAX_CLUSTERS];
 			setSize = new int[MAX_CLUSTERS];
 			sum = new double[MAX_CLUSTERS];
 	      
 			for(int i=0; i<MAX_CLUSTERS; ++i) {
-				cluster[i] = new Point(MAX_DIMENSIONS);
+				oldCluster[i] = new Point(MAX_DIMENSIONS);
 				newCluster[i] = new Point(MAX_DIMENSIONS);
 				setSize[i] = 0;
 				sum[i] = 0.0f;
@@ -334,7 +332,7 @@ public class KmeansManhattan {
 	    		String[] seperate = read.split("\t");
 	    		String[] tokens = seperate[1].split(" ");
 	    		int clusterID = Integer.parseInt(seperate[0]);
-	    		cluster[clusterID].setPoint(tokens);
+	    		oldCluster[clusterID].setPoint(tokens);
 	    	}
 	    	br.close();
 		}

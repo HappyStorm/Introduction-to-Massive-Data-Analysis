@@ -39,12 +39,13 @@ public class KmeansEuclidean {
 		this.runKmeansEuclideanC2(inPath_data, inPath_cluster_c2, outPath_data, outPath_cluster_c2, outPath_costFunc);
 	}
 	
-	// inPath_data:		 "/hw4/data/" + "data_c1_xx.txt"
-	// inPath_cluster:	 "/hw4/c1/"
-	// inPath_cluster:	 "/hw4/c2/"
-	// outPath_costFunc: "/hw4/eu/"
-	public void runKmeansEuclideanC1(String inPath_data, String inPath_cluster, 
-			 					   String outPath_data, String outPath_cluster, String outPath_costFunc) throws Exception{
+	// inPath_data:		 "/hw4/eu/data/"
+	// inPath_cluster:	 "/hw4/eu/c1/"
+	// outPath_data:	 "/hw4/eu/data/"
+	// outPath_cluster:	 "/hw4/eu/c1/"
+	// outPath_costFunc: "/hw4/eu/ans/"
+	public void runKmeansEuclideanC1(String inPath_data, String inPath_cluster, String outPath_data,
+									 String outPath_cluster, String outPath_costFunc) throws Exception{
 		Configuration conf = new Configuration();
 		conf.set("clusterInPath", inPath_cluster);
 		conf.set("clusterOutPath", outPath_cluster);
@@ -70,6 +71,12 @@ public class KmeansEuclidean {
 		job.waitForCompletion(true);
 	}
 	
+	
+	// inPath_data:		 "/hw4/eu/data/"
+	// inPath_cluster:	 "/hw4/eu/c2/"
+	// outPath_data:	 "/hw4/eu/data/"
+	// outPath_cluster:	 "/hw4/eu/c2/"
+	// outPath_costFunc: "/hw4/eu/ans/"
 	public void runKmeansEuclideanC2(String inPath_data, String inPath_cluster, 
 			   String outPath_data, String outPath_cluster, String outPath_costFunc) throws Exception{
 		Configuration conf = new Configuration();
@@ -98,9 +105,7 @@ public class KmeansEuclidean {
 	
 	public static class KmeansEuclideanMapperC1 extends Mapper<Object, Text, IntWritable, Text> {
 		private Point[] cluster;
-	    
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
+
 		@Override
 	    protected void setup(Context context) throws IOException, InterruptedException{
 	    	cluster = new Point[MAX_CLUSTERS];
@@ -153,24 +158,22 @@ public class KmeansEuclidean {
 	}
 	
 	public static class KmeansEuclideanReducerC1 extends Reducer<IntWritable, Text, NullWritable, Text> {
-		private Point[] cluster;
+		private Point[] oldCluster;
 		private Point[] newCluster;
 		private double[] sum;
-		private int[] setSize;
+		private int[] clusterSize;
 		
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException{
-			cluster = new Point[MAX_CLUSTERS];
+			oldCluster = new Point[MAX_CLUSTERS];
 			newCluster = new Point[MAX_CLUSTERS];
-			setSize = new int[MAX_CLUSTERS];
+			clusterSize = new int[MAX_CLUSTERS];
 			sum = new double[MAX_CLUSTERS];
 	      
 			for(int i=0; i<MAX_CLUSTERS; ++i) {
-				cluster[i] = new Point(MAX_DIMENSIONS);
+				oldCluster[i] = new Point(MAX_DIMENSIONS);
 				newCluster[i] = new Point(MAX_DIMENSIONS);
-				setSize[i] = 0;
+				clusterSize[i] = 0;
 				sum[i] = 0.0f;
 			}
 
@@ -187,7 +190,7 @@ public class KmeansEuclidean {
 	    		String[] seperate = read.split("\t");
 	    		String[] tokens = seperate[1].split(" ");
 	    		int clusterID = Integer.parseInt(seperate[0]);
-	    		cluster[clusterID].setPoint(tokens);
+	    		oldCluster[clusterID].setPoint(tokens);
 	    	}
 	    	br.close();
 		}
@@ -196,7 +199,7 @@ public class KmeansEuclidean {
 		public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 			
 			for(Text t : values){
-				setSize[key.get()]++;
+				clusterSize[key.get()]++;
 				Point tempPoint = new Point(MAX_DIMENSIONS);
 				String read = t.toString();
 				String[] seperate = read.split("\t");
@@ -231,7 +234,7 @@ public class KmeansEuclidean {
 
 			for(int i=0; i<MAX_CLUSTERS; ++i)
 				for(int j=0; j<MAX_DIMENSIONS; ++j)
-					newCluster[i].setDimensionValue(j, newCluster[i].getDimensionValue(j) / (double)setSize[i]);
+					newCluster[i].setDimensionValue(j, newCluster[i].getDimensionValue(j) / (double)clusterSize[i]);
 			
 			String clusterPathOut = conf.get("clusterOutPath");
 			Path pathNewC1 = new Path(clusterPathOut + "c1_" + nf.format(iter+1) + ".txt");
@@ -246,8 +249,6 @@ public class KmeansEuclidean {
 	public static class KmeansEuclideanMapperC2 extends Mapper<Object, Text, IntWritable, Text> {
 		private Point[] cluster;
 	    
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
 		@Override
 	    protected void setup(Context context) throws IOException, InterruptedException{
 	    	cluster = new Point[MAX_CLUSTERS];
@@ -300,24 +301,22 @@ public class KmeansEuclidean {
 	}
 	
 	public static class KmeansEuclideanReducerC2 extends Reducer<IntWritable, Text, NullWritable, Text> {
-		private Point[] cluster;
+		private Point[] oldCluster;
 		private Point[] newCluster;
 		private double[] sum;
-		private int[] setSize;
+		private int[] clusterSize;
 		
-		// inPath_cluster:	"/hw4/c1/"
-		// inPath_cluster:	"/hw4/c2/"
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException{
-			cluster = new Point[MAX_CLUSTERS];
+			oldCluster = new Point[MAX_CLUSTERS];
 			newCluster = new Point[MAX_CLUSTERS];
-			setSize = new int[MAX_CLUSTERS];
+			clusterSize = new int[MAX_CLUSTERS];
 			sum = new double[MAX_CLUSTERS];
 	      
 			for(int i=0; i<MAX_CLUSTERS; ++i) {
-				cluster[i] = new Point(MAX_DIMENSIONS);
+				oldCluster[i] = new Point(MAX_DIMENSIONS);
 				newCluster[i] = new Point(MAX_DIMENSIONS);
-				setSize[i] = 0;
+				clusterSize[i] = 0;
 				sum[i] = 0.0f;
 			}
 
@@ -334,7 +333,7 @@ public class KmeansEuclidean {
 	    		String[] seperate = read.split("\t");
 	    		String[] tokens = seperate[1].split(" ");
 	    		int clusterID = Integer.parseInt(seperate[0]);
-	    		cluster[clusterID].setPoint(tokens);
+	    		oldCluster[clusterID].setPoint(tokens);
 	    	}
 	    	br.close();
 		}
@@ -343,7 +342,7 @@ public class KmeansEuclidean {
 		public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 			
 			for(Text t : values){
-				setSize[key.get()]++;
+				clusterSize[key.get()]++;
 				Point tempPoint = new Point(MAX_DIMENSIONS);
 				String read = t.toString();
 				String[] seperate = read.split("\t");
@@ -378,7 +377,7 @@ public class KmeansEuclidean {
 
 			for(int i=0; i<MAX_CLUSTERS; ++i)
 				for(int j=0; j<MAX_DIMENSIONS; ++j)
-					newCluster[i].setDimensionValue(j, newCluster[i].getDimensionValue(j) / (double)setSize[i]);
+					newCluster[i].setDimensionValue(j, newCluster[i].getDimensionValue(j) / (double)clusterSize[i]);
 			
 			String clusterPathOut = conf.get("clusterOutPath");
 			Path pathNewC1 = new Path(clusterPathOut + "c2_" + nf.format(iter+1) + ".txt");

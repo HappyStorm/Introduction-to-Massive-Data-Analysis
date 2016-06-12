@@ -72,10 +72,12 @@ public class Main {
 		long timeManhattanElapsed = System.nanoTime() - timeManhattanStart;
 		System.out.println("Manhattan Elapsed Time: " + timeManhattanElapsed + "\n");
 		
+		// calculate the total elapsed time
 		long timeTotalElapsed = timePreProcessingEUElapsed + timePreProcessingMAElapsed +
 								timeEuclideanElapsed + timeManhattanElapsed;
 		System.out.println("Total Elapsed Time: " + timeTotalElapsed + "\n");
 		
+		// output all the time record in "time.txt"
 		Path pathTime = new Path(PREFIX_ROOT + "time.txt");
         FileSystem fs = FileSystem.get(new Configuration());
         BufferedWriter brTime = new BufferedWriter(new OutputStreamWriter(fs.create(pathTime)));
@@ -87,6 +89,7 @@ public class Main {
         brTime.close();
 	}
 	
+	// get #clusters from input file
 	private int getNumCluster(String inputPath) throws IOException{
 		int numCluster = 0;
 		try{
@@ -103,6 +106,7 @@ public class Main {
 		return numCluster;
 	}
 	
+	// get #points from input file
 	@SuppressWarnings("unused")
 	private int getNumPoint(String inputPath) throws IOException{
 		int numPoint = 0;
@@ -120,6 +124,7 @@ public class Main {
 		return numPoint;
 	}
 	
+	// get #dimension of input file
 	private int getNumDimension(String inputPath) throws IOException{
 		int numDimension = 0;
 		try{
@@ -136,30 +141,5 @@ public class Main {
         }catch(Exception e){
         }
 		return numDimension;
-	}
-
-	@SuppressWarnings("unused")
-	private static boolean isConverge(String prevIter, String nextIter){
-		try{
-            Path pathPrev = new Path(prevIter), pathNext = new Path(nextIter);
-            FileSystem fsPrev = FileSystem.get(new Configuration()),
-            		   fsNext = FileSystem.get(new Configuration());
-            BufferedReader brPrev = new BufferedReader(new InputStreamReader(fsPrev.open(pathPrev))),
-            			   brNext = new BufferedReader(new InputStreamReader(fsNext.open(pathNext)));
-            while (brPrev.ready() && brNext.ready()) {
-            	String linePrev = brPrev.readLine(), lineNext = brNext.readLine();
-            	String[] tokenPrev = linePrev.split("\t"), tokenNext = lineNext.split("\t");
-            	double valPrev = Double.parseDouble(tokenPrev[1]), valNext = Double.parseDouble(tokenNext[1]);
-            	if (Math.abs(valPrev - valNext) > 1e-9){
-            		brPrev.close();
-            		brNext.close();
-            		return false;
-            	}
-            }
-            brPrev.close();
-    		brNext.close();
-        }catch(Exception e){
-        }
-		return true;
 	}
 }
